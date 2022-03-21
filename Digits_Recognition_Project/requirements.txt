@@ -1,0 +1,2 @@
+sounddevice
+python_speech_features==0.4

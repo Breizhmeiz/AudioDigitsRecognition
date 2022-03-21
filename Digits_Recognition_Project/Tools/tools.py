@@ -1,11 +1,29 @@
 import time  # sinon pip install python-time
 import wave
 import os
+import random
+import string
 import sounddevice as sd  # sinon pip install sounddevice
 import scipy.io.wavfile as wav
 from python_speech_features import mfcc  # sinon pip install python_speech_features==0.4
 import numpy as np
 import pandas as pd
+
+
+def save_wav(data, rate, file_path: str):
+    """Save the input as a .wave file
+
+    :data: Sample to save
+    :rate: Sampling rate
+    :file_path: Destination uri
+    :returns: TODO
+
+    """
+    with wave.open(file_path, mode='wb') as wb:
+        wb.setnchannels(1)  # monaural
+        wb.setsampwidth(2)  # 16bit=2byte
+        wb.setframerate(rate)
+        wb.writeframes(data.tobytes())  # Convert to byte string
 
 
 # Digit Recognition
@@ -31,46 +49,46 @@ def rec(scaler, classifier):
     data = data / data.max() * np.iinfo(np.int16).max
     data = data.astype(np.int16)
 
+    save_wav(data, rate, './Rec/Rec_'+'Capture'+'_.wav')
+
     mfcc_feat = np.mean(mfcc(data, rate, numcep=12), axis=0)
     mfcc_feat = np.expand_dims(mfcc_feat, axis=0)
     pred = classifier.predict(scaler.transform(mfcc_feat))
     print('------------------')
-    print('Digit : ', pred[0])
+    print('Digit (prédiction) : ', pred[0])
     print('------------------')
+    return pred
 
 # Digit Collection
 
 
 def collection():
-
-    name_generator = chr(np.random.randint(500))+chr(np.random.randint(500))+chr(np.random.randint(500))
+    df = pd.DataFrame
+    name_generator = ''.join(random.sample(string.ascii_lowercase, 3))
+    #chr(np.random.randint(500))+chr(np.random.randint(500))+chr(np.random.randint(500))
 
     print("Attention, l'enregistrement commence dans :")
     (rate, sig) = wav.read("Tools/beep-04.wav")
     sd.play(sig, rate)
-    for i in range(0, 6):
+    for sec in range(0, 6):
         time.sleep(1)
-        print(5-i)
+        print(5-sec)
 
     time.sleep(1)
 
     rate = 48000
     duration = 2
 
-    for ii in range(0, 10):
+    for chiffre in range(0, 10):
 
-        print("Prononcer le chiffre : "+str(ii))
+        print("Prononcer le chiffre : "+str(chiffre))
         data = sd.rec(int(duration * rate), samplerate=rate, channels=1)
         sd.wait()
 
         data = data / data.max() * np.iinfo(np.int16).max
         data = data.astype(np.int16)
 
-        with wave.open('./Rec/Rec_'+str(ii)+'_.wav', mode='wb') as wb:
-            wb.setnchannels(1)  # monaural
-            wb.setsampwidth(2)  # 16bit=2byte
-            wb.setframerate(rate)
-            wb.writeframes(data.tobytes())  # Convert to byte string
+        save_wav(data, rate, './Rec/Rec_'+str(chiffre)+'_.wav')
 
         mfcc_feat = np.mean(mfcc(data, rate, numcep=12), axis=0)
 
@@ -86,7 +104,7 @@ def collection():
              'Fe10': mfcc_feat[9],
              'Fe11': mfcc_feat[10],
              'Fe12': mfcc_feat[11],
-             'Target': ii,
+             'Target': chiffre,
              }
 
         if any(File.endswith(".csv") for File in os.listdir('./Dataset/')):
@@ -96,4 +114,5 @@ def collection():
         else:
             df = pd.DataFrame(d, index=['1'])
             df.to_csv('./DataSet/DataSet__'+name_generator+'__.csv', index=False)
+
     return df.head()
