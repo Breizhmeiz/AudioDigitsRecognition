@@ -3,7 +3,7 @@ import wave
 import os
 import random
 import string
-import sounddevice as sd  # sinon pip install sounddevice
+import sounddevice as sd  # sinon pip install sounddevice et/ou sudo apt install portaudio19-dev
 import scipy.io.wavfile as wav
 from python_speech_features import mfcc  # sinon pip install python_speech_features==0.4
 import numpy as np
