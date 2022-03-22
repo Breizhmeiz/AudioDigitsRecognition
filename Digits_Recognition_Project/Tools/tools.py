@@ -73,6 +73,23 @@ def rec(scaler, classifier):
     print('------------------')
     return pred
 
+
+def rec_m(model):
+
+    rate = 48000
+    duration = 2
+
+    data = rec_wav(rate, duration)
+
+    mfcc_feat = np.mean(mfcc(data, rate, numcep=12), axis=0)
+    mfcc_feat = np.expand_dims(mfcc_feat, axis=0)
+    pred = model.predict(mfcc_feat)
+    print('------------------')
+    print('Digit (prédiction) : ', pred[0])
+    print('------------------')
+    return pred
+
+
 # Digit Collection
 
 
