@@ -26,6 +26,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import seaborn as sb
+sns = sb
 sb.set_style("whitegrid", {'axes.grid' : False})
 sb.set(font_scale = 2)
 import pandas as pd
@@ -35,7 +36,9 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier 
+from sklearn.neural_network import MLPClassifier
+
+from sklearn.pipeline import Pipeline
 
 # %% [markdown]
 # ### Collection 
@@ -68,7 +71,31 @@ mydata.isna().any()
 # #### 3. Visualiser les targets
 
 # %%
-mydata['Target']
+print(mydata['Target'])
+
+sns.pairplot(mydata, hue='Target', corner=True)
+
+# %%
+# Selection des 2 features les plus représentatives
+
+data = mydata[mydata['Target'].isin([0, 1])]
+sns.pairplot(data, hue='Target', corner=True)
+
+# %%
+# Selection des paires de features les plus représentatives
+
+for fa, fb in [(1, 3), (3, 4), (5, 8), (11, 5)]:
+    data = mydata[mydata['Target'].isin([fa, fb])]
+    sns.pairplot(data, hue='Target', corner=True)
+
+# %% [markdown]
+# L'idée étant de trouver quelles *features* sont les plus représentatives pour distinguer un chiffre d'un autre, la d
+# émarche est interressante, mais pour 10 chiffres, on ira vers un réseau de neurones :-) 
+
+# %%
+# Heatmap for correlation matrix
+fig, ax = plt.subplots(figsize=(24,12))
+sns.heatmap(mydata.corr(),annot=True,linewidths=.5,fmt='.1g',cmap= 'coolwarm')
 
 # %% [markdown]
 # #### 4. Notre variable target (Y) est 'gender', Récuprer X et y à partir du jeu de données 
@@ -107,6 +134,140 @@ print(x_test_scaled.mean(), x_test_scaled.std())
 
 # %% [markdown]
 # #### 7. Développer votre meilleur modèle de classification
+#
+# - [ ] from sklearn.tree import DecisionTreeClassifier
+# - [ ] from sklearn.ensemble import RandomForestClassifier
+# - [ ] from sklearn.ensemble import GradientBoostingClassifier
+# - [~] from sklearn.svm import SVC
+# - [ ] from sklearn.neural_network import MLPClassifier 
+
+# %% [markdown]
+# ##### DecisionTree
+
+# %%
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+
+
+dt = DecisionTreeClassifier()
+
+p = Pipeline([
+      ('dt', dt),
+    ])
+params = {
+    'dt__criterion': ['gini', 'entropy'],
+    'dt__max_depth': [1, 2, 3, 4, 5, 6, 7],
+    'dt__min_samples_split': [2, 3, 5, 10, 15, 20]
+    }
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
+model = gs.best_estimator_
+model.fit(x_train_scaled, y_train)
+
+# %% [markdown]
+# ##### RandomForest
+
+# %%
+from sklearn.model_selection import GridSearchCV
+
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier()
+
+#best_n = range(1, 100, 10)
+best_n = range(75, 85, 1)
+# 91} 0.6411069980609906
+# 81} 0.6632293319231447
+# 77} 0.6794465009695047
+# 84} 0.6958399435924555
+print(best_n)
+
+params = {'n_estimators': best_n}
+gs = GridSearchCV(rf, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+from sklearn.pipeline import Pipeline
+
+p = Pipeline([
+      ('rf', rf),
+    ])
+params = {
+    'rf__n_estimators': best_n,
+    'rf__criterion': ['gini', 'entropy'],
+}
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
+model = gs.best_estimator_
+model.fit(x_train_scaled, y_train)
+
+# %% [markdown]
+# ##### GradientBoosting
+
+# %%
+from sklearn.ensemble import GradientBoostingClassifier
+
+gb = GradientBoostingClassifier()
+
+best_n = range(1, 150, 10)
+#best_n = range(50, 70, 1)
+# 61} 0.5866384628944121
+# 57} 0.5867265996827076
+# 64} 0.5974792878547506
+print(best_n)
+
+# à éviter sans une bonne machine :-()
+params = {
+    'loss':['deviance'],
+    'learning_rate': [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
+    'min_samples_split': np.linspace(0.1, 0.5, 12),
+    'min_samples_leaf': np.linspace(0.1, 0.5, 12),
+    'max_depth':[3,5,8],
+    'max_features':['log2', 'sqrt'],
+    'criterion': ['friedman_mse', 'squared_error', 'mse', 'mae'],
+    'subsample':[0.5, 0.618, 0.8, 0.85, 0.9, 0.95, 1.0],
+    'n_estimators': best_n
+    }
+
+params = {'n_estimators': best_n}
+
+gs = GridSearchCV(gb, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+
+
+# %%
+from sklearn.pipeline import Pipeline
+
+p = Pipeline([
+      ('gb', gb),
+    ])
+params = {
+    'gb__n_estimators': best_n,
+    'gb__criterion': ['friedman_mse', 'squared_error', 'mse', 'mae'],
+}
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
+model = gs.best_estimator_
+model.fit(x_train_scaled, y_train)
 
 # %% [markdown]
 # ##### SVM
@@ -114,9 +275,9 @@ print(x_test_scaled.mean(), x_test_scaled.std())
 # %%
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import GridSearchCV
-#best_C = np.logspace(1,9,num=9,base=10,dtype='int')  # range() avec pas logarithmique (de 2^1 à 2^9)
+#best_C = np.logspace(1,9,num=9,base=10,dtype='int')  # range() avec pas logarithmique (de 2^1 à 2^10)
 #best_C = range(1, 100, 10)
-best_C = range(1, 10)
+#best_C = range(1, 10)
 best_C = [i/100000 for i in range(18830, 18840)]
 # 138 : 0.6518018018018019
 # 100 : 0.6518018018018019
@@ -131,7 +292,56 @@ print("Best score : ", grid.best_score_)
 print("Best param : ", grid.best_params_)
 
 # %%
+from sklearn.pipeline import Pipeline
+
+svm = SVC()
+p = Pipeline([
+      ('svm', svm),
+    ])
+params = {
+    'svm__C': best_C,
+    'svm__dual': [False],
+}
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
 model = grid.best_estimator_
+model.fit(x_train_scaled, y_train)
+
+# %% [markdown]
+# ##### MLP
+
+# %%
+from sklearn.neural_network import MLPClassifier
+
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+
+mlp = MLPClassifier()
+
+p = Pipeline([
+      ('mlp', mlp),
+    ])
+params = {
+    'mlp__solver': ['lbfgs', 'sgd', 'adam'],
+    'mlp__max_iter': range(1, 1000, 100),
+    'mlp__alpha': 10.0 ** -np.arange(1, 10),
+    'mlp__hidden_layer_sizes':np.arange(10, 15),
+    'mlp__random_state':[0,1,2,3,4,5,6,7,8,9],
+    'mpl__n_jobs': [-1]
+}
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
+model = gs.best_estimator_
 model.fit(x_train_scaled, y_train)
 
 # %% [markdown]
@@ -166,6 +376,11 @@ print('test_acc: ',test_acc)
 predictions = model.predict(x_test_scaled)
 print("Meilleure predictions pour : ", np.argmax(predictions[0]))
 
+# %%
+# Meilleur Modèle :
+model = model
+model.fit(x_train_scaled, y_train)
+
 # %% [markdown]
 # ##### XGBoost
 
@@ -198,8 +413,13 @@ rmse = np.sqrt(mean_squared_error(y_test, preds))
 print("RMSE: %f" % (rmse))
 
 # k-fold Cross Validation
-params = {"objective":"reg:squarederror",'colsample_bytree': 0.3,'learning_rate': 0.1,
-                'max_depth': 5, 'alpha': 10}
+params = {
+    'objective': 'reg:squarederror',
+    'colsample_bytree': 0.3,
+    'learning_rate': 0.1,
+    'max_depth': 5,
+    'alpha': 10,
+}
 
 cv_results = xgb.cv(dtrain=data_dmatrix, params=params, nfold=3,
                     num_boost_round=50,early_stopping_rounds=10,metrics="rmse", as_pandas=True, seed=123)
@@ -208,12 +428,28 @@ print(cv_results.head())
 print("Meilleur : ", (cv_results["test-rmse-mean"]).tail(1))
 
 # %%
+# Meilleur Modèle :
+model = xg_reg
+#model = cv_results.best_estimator_
+model.fit(x_train_scaled, y_train)
+
+# %%
+# save in JSON format
+model.save_model("model_XGBoot.json")
 
 # %% [markdown]
 # # Application en Temps Réel
+#
+# Voir le notebook `Recorder` !
 
 # %%
-# del rec
+# Pour le dev de rec et rec2
+from importlib import reload  # Python 3.4+
+
+import Tools.tools
+reload(Tools.tools)
+
+# %%
 from Tools.tools import rec
 
 # %%
@@ -226,6 +462,21 @@ print("Prediction : ", np.argmax(pred[0]))
 for p in pred[0]:
     print(p)
 
+# %% [markdown]
+# ## Enregistrement du modèle
+
 # %%
+# Avec pickle
+from pickle import dump
+# save the model to disk
+filename = 'best_model.pkl'
+dump(model, open(filename, 'wb'))
+
+# %%
+# Avec joblib
+from joblib import dump 
+# save the model to disk
+filename = 'best.sav'
+dump(model, filename)
 
 # %%
