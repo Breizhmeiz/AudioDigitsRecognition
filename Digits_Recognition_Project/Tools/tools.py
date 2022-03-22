@@ -25,22 +25,20 @@ def save_wav(data, rate, file_path: str):
         wb.setframerate(rate)
         wb.writeframes(data.tobytes())  # Convert to byte string
 
+def rec_wav(rate=48000, duration=2):
+    """Return the recorded wave
 
-# Digit Recognition
+    :rate: Qualité (defaut 48k)
+    :duration: Durée de l'enregistrement (defaut 2 secondes)
+    :returns: 
 
-def rec(scaler, classifier):
-
+    """
     print("Attention, l'enregistrement commence dans :")
     (rate, sig) = wav.read("./Tools/beep-04.wav")
-    sd.play(sig, rate)
-    for i in range(0, 6):
+    # sd.play(sig, rate)
+    for i in range(3, 0, -1):
         time.sleep(1)
-        print(5-i)
-
-    time.sleep(1)
-
-    rate = 48000
-    duration = 2
+        print(i)
 
     print("Prononcer votre Digit : ")
     data = sd.rec(int(duration * rate), samplerate=rate, channels=1)
@@ -49,7 +47,23 @@ def rec(scaler, classifier):
     data = data / data.max() * np.iinfo(np.int16).max
     data = data.astype(np.int16)
 
-    save_wav(data, rate, './Rec/Rec_'+'Capture'+'_.wav')
+    filename = './Rec/Rec_'+'Capture'+'_.wav'
+    save_wav(data, rate, filename)
+
+    (rate, sig) = wav.read(filename)
+    sd.play(sig, rate)
+
+    return data
+
+
+# Digit Recognition
+
+def rec(scaler, classifier):
+
+    rate = 48000
+    duration = 2
+
+    data = rec_wav(rate, duration)
 
     mfcc_feat = np.mean(mfcc(data, rate, numcep=12), axis=0)
     mfcc_feat = np.expand_dims(mfcc_feat, axis=0)
