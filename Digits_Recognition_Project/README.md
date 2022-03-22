@@ -79,8 +79,8 @@ L’évaluation de ce projet sera partagée entre :
 ## Livrables
 
 Un dépôt GitHub avec :
-- [ ] Un Notebook bien structuré/organisé qui réalise les différentes étapes de ce projet.
-- [ ] Un Notebook de l'application adaptée qui affiche le résultat d'un Test Temps Réel.
-- [ ] Un Readme.md pour mettre en avant votre projet.
+- [X] Un Notebook bien structuré/organisé qui réalise les différentes étapes de ce projet.
+- [X] Un Notebook de l'application adaptée qui affiche le résultat d'un Test Temps Réel.
+- [X] Un Readme.md pour mettre en avant votre projet.
 - [ ] Un compte rendu PDF.
-- [ ] Les DataSets et les fichiers nécessaires.
+- [X] Les DataSets et les fichiers nécessaires.
