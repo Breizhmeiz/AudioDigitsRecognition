@@ -20,8 +20,8 @@
 # ### Importer les bibliothéques necessaires 
 
 # %%
-from Tools.tools import rec
-from Tools.tools import collection
+#from Tools.tools import rec
+#from Tools.tools import collection
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -50,7 +50,7 @@ from sklearn.pipeline import Pipeline
 # #### 1. Importer votre DataSet
 
 # %%
-mydata = pd.read_csv('./DataSet/'+os.listdir('./DataSet/')[0])
+mydata = pd.read_csv('./Dataset/'+os.listdir('./Dataset/')[0])
 mydata.shape
 
 # %% [markdown]
@@ -135,11 +135,11 @@ print(x_test_scaled.mean(), x_test_scaled.std())
 # %% [markdown]
 # #### 7. Développer votre meilleur modèle de classification
 #
-# - [ ] from sklearn.tree import DecisionTreeClassifier
-# - [ ] from sklearn.ensemble import RandomForestClassifier
-# - [ ] from sklearn.ensemble import GradientBoostingClassifier
+# - [X] from sklearn.tree import DecisionTreeClassifier
+# - [X] from sklearn.ensemble import RandomForestClassifier
+# - [X] from sklearn.ensemble import GradientBoostingClassifier
 # - [~] from sklearn.svm import SVC
-# - [ ] from sklearn.neural_network import MLPClassifier 
+# - [X] from sklearn.neural_network import MLPClassifier 
 
 # %% [markdown]
 # ##### DecisionTree
@@ -236,7 +236,7 @@ params = {
     'min_samples_leaf': np.linspace(0.1, 0.5, 12),
     'max_depth':[3,5,8],
     'max_features':['log2', 'sqrt'],
-    'criterion': ['friedman_mse', 'squared_error', 'mse', 'mae'],
+    'criterion': ['friedman_mse', 'squared_error', 'absolute_error'],
     'subsample':[0.5, 0.618, 0.8, 0.85, 0.9, 0.95, 1.0],
     'n_estimators': best_n
     }
@@ -257,7 +257,7 @@ p = Pipeline([
     ])
 params = {
     'gb__n_estimators': best_n,
-    'gb__criterion': ['friedman_mse', 'squared_error', 'mse', 'mae'],
+    'gb__criterion': ['friedman_mse', 'squared_error'],
 }
 
 gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
@@ -295,12 +295,15 @@ print("Best param : ", grid.best_params_)
 from sklearn.pipeline import Pipeline
 
 svm = SVC()
+print(svm.get_params().keys())
+
 p = Pipeline([
       ('svm', svm),
     ])
 params = {
     'svm__C': best_C,
-    'svm__dual': [False],
+    # 'svm__dual': [False],
+    
 }
 
 gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
@@ -309,7 +312,7 @@ print(gs.score(x_test, y_test))
 
 # %%
 # Meilleur Modèle :
-model = grid.best_estimator_
+model = gs.best_estimator_
 model.fit(x_train_scaled, y_train)
 
 # %% [markdown]
@@ -323,6 +326,8 @@ from sklearn.pipeline import Pipeline
 
 mlp = MLPClassifier()
 
+print(mlp.get_params().keys())
+
 p = Pipeline([
       ('mlp', mlp),
     ])
@@ -331,8 +336,8 @@ params = {
     'mlp__max_iter': range(1, 1000, 100),
     'mlp__alpha': 10.0 ** -np.arange(1, 10),
     'mlp__hidden_layer_sizes':np.arange(10, 15),
-    'mlp__random_state':[0,1,2,3,4,5,6,7,8,9],
-    'mpl__n_jobs': [-1]
+    'mlp__random_state':[0],
+    #'mlp__n_jobs': [-1]
 }
 
 gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
@@ -386,19 +391,6 @@ model.fit(x_train_scaled, y_train)
 
 # %%
 import xgboost as xgb
-# read in data
-dtrain = xgb.DMatrix(x_train)
-dtest = xgb.DMatrix(x_test)
-# specify parameters via map
-param = {'max_depth':2, 'eta':1, 'objective':'binary:logistic' }
-num_round = 2
-bst = xgb.train(param, dtrain, num_round)
-# make prediction
-preds = bst.predict(dtest)
-
-
-# %%
-import xgboost as xgb
 from sklearn.metrics import mean_squared_error
 
 # Optimiser la structure des données
@@ -436,6 +428,44 @@ model.fit(x_train_scaled, y_train)
 # %%
 # save in JSON format
 model.save_model("model_XGBoot.json")
+
+# %% [markdown]
+# #### Pipeline de selection
+
+# %%
+p = Pipeline([
+    ('dt', dt),
+    ('rf', rf),
+    ('gb', gb),
+    ('svm', svm),
+    #('mlp', mlp),
+])
+
+best_n = range(75, 85, 1)
+
+params = {
+    'dt__criterion': 'entropy', 'dt__max_depth': 5, 'dt__min_samples_split': 5,
+    'rf__criterion': 'gini', 'rf__n_estimators': 77,
+    'gb__criterion': 'friedman_mse', 'gb__n_estimators': 71,
+    'svm__C': 0.1883,
+    #'mlp__solver': ['lbfgs', 'sgd', 'adam'],
+    #'mlp__max_iter': range(1, 1000, 100),
+    #'mlp__alpha': 10.0 ** -np.arange(1, 10),
+    #'mlp__hidden_layer_sizes':np.arange(10, 15),
+    #'mlp__random_state':[0],
+    #'mlp__n_jobs': [-1]
+
+}
+
+
+gs = GridSearchCV(p, params, cv=3).fit(x_train, y_train)
+print(gs.best_params_, gs.best_score_)
+print(gs.score(x_test, y_test))
+
+# %%
+# Meilleur Modèle :
+model = gs.best_estimator_
+model.fit(x_train_scaled, y_train)
 
 # %% [markdown]
 # # Application en Temps Réel
